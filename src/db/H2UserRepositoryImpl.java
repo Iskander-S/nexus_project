@@ -1,8 +1,8 @@
 package db;
 
 import exception.DataAccessException;
-import model.User;
 import model.Rank;
+import model.User;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -13,9 +13,17 @@ public class H2UserRepositoryImpl implements UserRepository {
 
     @Override
     public User save(User user) {
+        try (Connection conn = DatabaseManager.getConnection()) {
+            return save(conn, user);
+        } catch (SQLException e) {
+            throw new DataAccessException("Failed to save user with ID: " + user.getId(), e);
+        }
+    }
+
+    @Override
+    public User save(Connection conn, User user) {
         String sql = "MERGE INTO users (id, name, level, current_xp, rank) KEY(id) VALUES (?, ?, ?, ?, ?)";
-        try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, user.getId());
             pstmt.setString(2, user.getName());
@@ -32,27 +40,15 @@ public class H2UserRepositoryImpl implements UserRepository {
 
     @Override
     public Optional<User> findById(String id) {
-        String sql = "SELECT * FROM users WHERE id = ?";
-        try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        return findOne("SELECT * FROM users WHERE id = ?", id,
+                "Failed to load user with ID: " + id);
+    }
 
-            pstmt.setString(1, id);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    String name = rs.getString("name");
-                    int level = rs.getInt("level");
-                    int currentXp = rs.getInt("current_xp");
-                    Rank rank = Rank.valueOf(rs.getString("rank"));
-
-                    // Восстанавливаем объект User с сохраненным состоянием
-                    User user = new User(id, name, level, currentXp, rank);
-                    return Optional.of(user);
-                }
-            }
-        } catch (SQLException e) {
-            throw new DataAccessException("Failed to load user with ID: " + id, e);
-        }
-        return Optional.empty();
+    @Override
+    public Optional<User> findByName(String name) {
+        // раньше всегда возвращался Optional.empty() — заглушка
+        return findOne("SELECT * FROM users WHERE name = ? LIMIT 1", name,
+                "Failed to load user with name: " + name);
     }
 
     @Override
@@ -64,13 +60,7 @@ public class H2UserRepositoryImpl implements UserRepository {
              ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
-                users.add(new User(
-                        rs.getString("id"),
-                        rs.getString("name"),
-                        rs.getInt("level"),
-                        rs.getInt("current_xp"),
-                        Rank.valueOf(rs.getString("rank"))
-                ));
+                users.add(mapRowToUser(rs));
             }
         } catch (SQLException e) {
             throw new DataAccessException("Failed to load all users", e);
@@ -85,15 +75,35 @@ public class H2UserRepositoryImpl implements UserRepository {
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, id);
-            int rowsAffected = pstmt.executeUpdate();
-            return rowsAffected > 0;
+            return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
             throw new DataAccessException("Failed to delete user with ID: " + id, e);
         }
     }
 
-    @Override
-    public Optional<User> findByName(String name) {
+    private Optional<User> findOne(String sql, String param, String errorMessage) {
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, param);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapRowToUser(rs));
+                }
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException(errorMessage, e);
+        }
         return Optional.empty();
+    }
+
+    private User mapRowToUser(ResultSet rs) throws SQLException {
+        return new User(
+                rs.getString("id"),
+                rs.getString("name"),
+                rs.getInt("level"),
+                rs.getInt("current_xp"),
+                Rank.valueOf(rs.getString("rank"))
+        );
     }
 }

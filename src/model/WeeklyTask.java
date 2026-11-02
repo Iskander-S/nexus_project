@@ -1,6 +1,8 @@
 package model;
 
 public class WeeklyTask extends Task {
+    private static final long serialVersionUID = 1L;
+
     public WeeklyTask(String id, String title, String description) {
         super(id, title, description, 150);
     }

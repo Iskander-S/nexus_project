@@ -1,18 +1,24 @@
+import config.AppServices;
 import db.DatabaseManager;
-import db.H2TaskRepositoryImpl;
-import db.H2UserRepositoryImpl;
-import service.TaskService;
-import service.UserService;
+import javafx.application.Application;
 import ui.AppRunner;
+import ui.NexusApp;
 
 public class Main {
     public static void main(String[] args) {
-        DatabaseManager.initTables();
+        if (args.length > 0 && "--cli".equalsIgnoreCase(args[0])) {
+            runCli();
+        } else {
+            Application.launch(NexusApp.class, args);
+        }
+    }
 
-        UserService userService = new UserService(new H2UserRepositoryImpl());
-        TaskService taskService = new TaskService(new H2TaskRepositoryImpl(), userService);
-
-        AppRunner app = new AppRunner(userService, taskService);
-        app.run();
+    private static void runCli() {
+        try {
+            AppServices services = AppServices.create();
+            new AppRunner(services.userService(), services.taskService()).run();
+        } finally {
+            DatabaseManager.shutdown();
+        }
     }
 }

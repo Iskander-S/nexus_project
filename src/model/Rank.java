@@ -1,5 +1,7 @@
 package model;
 
+import java.util.Optional;
+
 public enum Rank {
     S_RANK("S-Rank", 2000),
     A_RANK("A-Rank", 1600),
@@ -18,6 +20,10 @@ public enum Rank {
 
     public String getDisplayName() { return displayName; }
     public int getMinXp() { return minXp; }
+
+    public Optional<Rank> next() {
+        return ordinal() == 0 ? Optional.empty() : Optional.of(values()[ordinal() - 1]);
+    }
 
     public static Rank getRankByXp(int xp) {
         for (Rank rank : values()) {

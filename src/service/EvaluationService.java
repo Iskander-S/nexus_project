@@ -10,6 +10,10 @@ public class EvaluationService {
             throw new InvalidGradeException("Score must be between 0 and 100. Submitted: " + submittedScore);
         }
 
+        if (task.isCompleted()) {
+            throw new IllegalStateException("Task already completed: " + task.getId());
+        }
+
         task.complete();
 
         if (task instanceof Evaluatable evaluatable) {
