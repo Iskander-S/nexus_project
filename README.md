@@ -1,36 +1,36 @@
-# Nexus — квест-система с рангами
+# Nexus - a quest system with ranks
 
-Задачи (Daily / Weekly / Global), XP, уровни и ранги E → S. Данные хранятся в H2 (`~/.nexus/`).
+Tasks (Daily / Weekly / Global), XP, levels and ranks E → S. Data is stored in H2 (`~/.nexus/`).
 
-## Запуск
+## Running
 
 ```bash
-mvn javafx:run          # графический интерфейс (JavaFX)
-mvn test                # тесты
+mvn javafx:run          # graphical interface (JavaFX)
+mvn test                # tests
 ```
 
-Из IDE запускайте класс `Main`. Консольный режим: `Main --cli` (аргумент программы).
-Нужны JDK 21+ и интернет при первой сборке (Maven скачает JavaFX, H2, HikariCP).
+From the IDE, run the `Main` class. Console mode: `Main --cli` (program argument).
+We need JDK 21+ and the Internet at the first build (Maven downloads JavaFX, H2, HikariCP).
 
-GUI и CLI используют одну БД и одного игрока (`user_001`).
+GUI and CLI use one database and one player ('user_001`).
 
-## Что исправлено
+## What's fixed
 
-| Где | Проблема | Исправление |
+| Where | Is the Problem | Fix |
 |---|---|---|
-| `Main.java` | `class пше Main` — проект не компилировался | исправлено |
-| `pom.xml` | старые Maven пропускают JUnit 5 тесты без явной версии surefire | `maven-surefire-plugin 3.2.5` |
-| `DatabaseManager` | пул создавался в `static {}`: при занятой БД — `ExceptionInInitializerError`, а затем `NoClassDefFoundError` в `finally` скрывал настоящую причину | ленивая инициализация, понятное сообщение об ошибке, безопасный `shutdown()` |
-| `TaskService` | можно создать квест с пустым названием / без пользователя | валидация в `assignTask` |
-| `TaskRepository.deleteById` | удаляет по одному id, не проверяя владельца | новый `TaskService.deleteTask(userId, taskId)` с проверкой владельца |
+| `Main.java ` | `class or Main` — the project was not compiled | fixed |
+| `pom.xml | old Maven versions skip JUnit 5 tests without an explicit surefire version | `maven-surefire-plugin 3.2.5` |
+| `DatabaseManager` | the pool was created in `static {}`: when the database was busy, an `ExceptionInInitializerError` occurred, and then a `NoClassDefFoundError` in `finally` hid the real cause | lazy initialization, clear error message, safe `shutdown()` |
+| `TaskService` | you can create a quest with an empty name / without a user | validation in `assignTask` |
+| `TaskRepository.deleteById` | deletes by id, without checking the owner | new `TaskService.deleteTask(userId, taskId)` with owner check |
 
-## Что добавлено
+## What’s added
 
-* **JavaFX-интерфейс** (`src/ui/NexusApp` и экраны): Dashboard (профиль, прогресс до уровня и ранга, статистика), Quests (карточки, фильтр по типу, выполнение и удаление), History.
-* Диалог создания квеста; для Global-квестов — диалог оценки со слайдером и предпросмотром оценки (S…E) и XP.
-* Уведомления, «LEVEL UP / RANK UP», горячая клавиша **Ctrl+N**, тёмная тема (`src/main/resources/css/nexus.css`).
-* Операции с БД выполняются в фоне — окно не подвисает.
-* При первом запуске спрашивается имя игрока.
+* **JavaFX interface** (`src/ui/NexusApp` and screens): Dashboard (profile, progress to level and rank, statistics), Quests (cards, filter by type, completion and deletion), History.
+* Quest creation dialog; for Global quests — a rating dialog with a slider and preview of the rating (S…E) and XP.
+* Notifications, “LEVEL UP / RANK UP”, hotkey **Ctrl+N**, dark theme (`src/main/resources/css/nexus.css`).
+* Database operations are performed in the background — the window doesn’t freeze.
+* On the first launch, the player’s name is requested.
 * `Rank.next()`, `User.getXpIntoLevel()`, `UserService.findUser()`, `TaskService.getTasks()/getCompletedTasks()`.
-* `config.AppServices` — единая сборка зависимостей для GUI и CLI.
-* Новые тесты: пустое название, удаление чужой задачи, список выполненных, цепочка рангов.
+* `config.AppServices` — a unified dependency build for GUI and CLI.
+* New tests: empty name, deleting someone else’s task, list of completed tasks, rank chain.
