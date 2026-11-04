@@ -2,24 +2,17 @@ package ui;
 
 import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
+import javafx.animation.SequentialTransition;
+import javafx.application.Platform;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
-public final class ToastHost extends VBox {
+public final class ToastHost extends VBox implements NotificationService {
+    public static final int VISIBLE_MILLIS = 3000;
 
-    public enum Kind {
-        INFO("toast-info", 3000), SUCCESS("toast-success", 3200), ERROR("toast-error", 5500), LEVEL_UP("toast-levelup", 4200);
-
-        private final String css;
-        private final int millis;
-
-        Kind(String css, int millis) {
-            this.css = css;
-            this.millis = millis;
-        }
-    }
-
+    private static final int FADE_IN_MILLIS = 180;
+    private static final int FADE_OUT_MILLIS = 300;
     private static final int MAX_VISIBLE = 4;
 
     public ToastHost() {
@@ -28,8 +21,14 @@ public final class ToastHost extends VBox {
         setPickOnBounds(false);
     }
 
+    @Override
     public void show(String message, Kind kind) {
-        Label toast = Ui.label(message, "toast", kind.css);
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater(() -> show(message, kind));
+            return;
+        }
+
+        Label toast = Ui.label(message, "toast", cssOf(kind));
         toast.setWrapText(true);
         toast.setMaxWidth(360);
         toast.setOpacity(0);
@@ -39,17 +38,27 @@ public final class ToastHost extends VBox {
             getChildren().remove(0);
         }
 
-        FadeTransition in = new FadeTransition(Duration.millis(180), toast);
+        FadeTransition in = new FadeTransition(Duration.millis(FADE_IN_MILLIS), toast);
         in.setToValue(1);
-        in.play();
 
-        PauseTransition wait = new PauseTransition(Duration.millis(kind.millis));
-        wait.setOnFinished(e -> {
-            FadeTransition out = new FadeTransition(Duration.millis(300), toast);
-            out.setToValue(0);
-            out.setOnFinished(done -> getChildren().remove(toast));
-            out.play();
-        });
-        wait.play();
+        PauseTransition hold = new PauseTransition(
+                Duration.millis(VISIBLE_MILLIS - FADE_IN_MILLIS - FADE_OUT_MILLIS));
+
+        FadeTransition out = new FadeTransition(Duration.millis(FADE_OUT_MILLIS), toast);
+        out.setToValue(0);
+
+        SequentialTransition lifecycle = new SequentialTransition(in, hold, out);
+        lifecycle.setOnFinished(e -> getChildren().remove(toast));
+        lifecycle.play();
+    }
+
+    private static String cssOf(Kind kind) {
+        return switch (kind) {
+            case INFO -> "toast-info";
+            case SUCCESS -> "toast-success";
+            case ERROR -> "toast-error";
+            case LEVEL_UP -> "toast-levelup";
+            case ACHIEVEMENT -> "toast-achievement";
+        };
     }
 }

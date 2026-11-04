@@ -1,0 +1,386 @@
+/* ============================================================
+   NEXUS — общие стили (раскладка, формы, компоненты).
+   ВСЕ цвета берутся из переменных -nx-*, которые определяют
+   dark-theme.css и light-theme.css. Здесь цветов-«хексов» почти нет.
+
+   Во всех стилизованных контролах явно заданы background-insets/radius:
+   стандартные значения JavaFX рассчитаны на несколько слоёв и дают артефакты.
+   ============================================================ */
+
+.root, .nx-dialog {
+    -fx-font-family: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
+    -fx-font-size: 14px;
+}
+.root { -fx-background-color: -nx-bg; }
+.label { -fx-text-fill: -nx-text; }
+
+/* ---------- экран входа ---------- */
+.login-view { -fx-background-color: -nx-hero-bg; }
+.login-card { -fx-padding: 34; }
+.login-title { -fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: -nx-text-strong; }
+.login-subtitle { -fx-text-fill: -nx-dim; }
+
+/* ---------- оболочка, боковая панель, верхняя панель ---------- */
+.shell { -fx-background-color: -nx-bg; }
+.sidebar {
+    -fx-background-color: -nx-surface;
+    -fx-border-color: transparent -nx-border transparent transparent;
+    -fx-border-width: 0 1 0 0;
+}
+.brand-icon { -fx-background-color: -nx-accent-gradient; }
+.brand-title { -fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: -nx-text-strong; }
+.brand-subtitle { -fx-font-size: 10.5px; -fx-text-fill: -nx-dim; -fx-font-weight: bold; }
+
+.toggle-button.nav-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 10;
+    -fx-text-fill: -nx-dim;
+    -fx-font-weight: bold;
+    -fx-alignment: CENTER_LEFT;
+    -fx-graphic-text-gap: 14;
+    -fx-padding: 12 16;
+    -fx-cursor: hand;
+}
+.toggle-button.nav-button:hover { -fx-background-color: -nx-hover; -fx-text-fill: -nx-text; }
+.toggle-button.nav-button:selected { -fx-background-color: -nx-nav-selected-bg; -fx-text-fill: -nx-nav-selected-text; }
+.nav-button .icon { -fx-background-color: -nx-dim; }
+.nav-button:hover .icon { -fx-background-color: -nx-text; }
+.nav-button:selected .icon { -fx-background-color: -nx-nav-icon-selected; }
+
+.side-profile {
+    -fx-background-color: -nx-surface-2;
+    -fx-background-radius: 14;
+    -fx-padding: 12;
+}
+.side-name { -fx-font-weight: bold; -fx-text-fill: -nx-text-strong; }
+.side-meta { -fx-font-size: 12px; -fx-text-fill: -nx-dim; }
+
+.top-bar {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent -nx-border transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 12 28;
+}
+.top-user { -fx-text-fill: -nx-dim; -fx-font-size: 13px; }
+
+/* ---------- страницы ---------- */
+.page { -fx-background-color: transparent; }
+.page-scroll, .page-scroll > .viewport { -fx-background-color: transparent; -fx-background-insets: 0; }
+.page-scroll { -fx-padding: 0; }
+.page-title { -fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: -nx-text-strong; }
+.page-subtitle { -fx-text-fill: -nx-dim; -fx-font-size: 14px; }
+.section-title { -fx-font-size: 17px; -fx-font-weight: bold; -fx-text-fill: -nx-text-strong; }
+
+/* ---------- карточки ---------- */
+.card {
+    -fx-background-color: -nx-surface;
+    -fx-background-insets: 0;
+    -fx-background-radius: 16;
+    -fx-border-color: -nx-border;
+    -fx-border-radius: 16;
+    -fx-border-width: 1;
+    -fx-padding: 22;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.35), 18, 0, 0, 6);
+}
+.hero-card { -fx-background-color: -nx-hero-bg; }
+.hero-name { -fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: -nx-text-strong; }
+.stat-tile { -fx-padding: 18 20; }
+.stat-value { -fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: -nx-text-strong; }
+.stat-label { -fx-font-size: 12.5px; -fx-text-fill: -nx-dim; }
+.bar-caption { -fx-text-fill: -nx-dim; -fx-font-size: 12.5px; -fx-font-weight: bold; }
+.bar-value { -fx-text-fill: -nx-text; -fx-font-size: 12.5px; }
+
+.row {
+    -fx-background-color: -nx-surface-2;
+    -fx-background-insets: 0;
+    -fx-background-radius: 12;
+    -fx-padding: 12 16;
+}
+.row-title { -fx-font-weight: bold; -fx-text-fill: -nx-text; }
+.history-row { -fx-padding: 14 18; }
+.done-mark { -fx-background-color: -nx-daily-bg; -fx-background-radius: 20; }
+.done-mark .icon { -fx-background-color: -nx-success; }
+
+/* ---------- карточка квеста ---------- */
+.quest-card {
+    -fx-background-color: -nx-surface;
+    -fx-background-insets: 0;
+    -fx-background-radius: 14;
+    -fx-border-color: -nx-border;
+    -fx-border-radius: 14;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.30), 14, 0, 0, 4);
+}
+.quest-card:hover { -fx-border-color: -nx-border-strong; }
+.stripe { -fx-background-radius: 14 0 0 14; -fx-background-insets: 0; }
+.stripe-daily { -fx-background-color: -nx-daily; }
+.stripe-weekly { -fx-background-color: -nx-weekly; }
+.stripe-global { -fx-background-color: -nx-global-stripe; }
+.quest-title { -fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: -nx-text-strong; }
+.quest-desc { -fx-text-fill: -nx-dim; }
+
+.empty-state {
+    -fx-background-color: -nx-empty-bg;
+    -fx-background-radius: 16;
+    -fx-border-color: -nx-border;
+    -fx-border-radius: 16;
+    -fx-border-style: segments(8, 6);
+    -fx-padding: 48;
+}
+.empty-title { -fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: -nx-text-strong; }
+.empty-hint { -fx-text-fill: -nx-dim; }
+
+/* ---------- чипы, ранги, оценки ---------- */
+.chip { -fx-background-radius: 20; -fx-padding: 3 11; -fx-font-size: 11.5px; -fx-font-weight: bold; }
+.chip-daily  { -fx-background-color: -nx-daily-bg;  -fx-text-fill: -nx-daily; }
+.chip-weekly { -fx-background-color: -nx-weekly-bg; -fx-text-fill: -nx-weekly; }
+.chip-global { -fx-background-color: -nx-global-bg; -fx-text-fill: -nx-global; }
+.chip-xp     { -fx-background-color: -nx-xp-bg;     -fx-text-fill: -nx-xp; }
+.chip-target { -fx-background-color: -nx-target-bg; -fx-text-fill: -nx-target; }
+.chip-level  { -fx-background-color: -nx-level-bg;  -fx-text-fill: -nx-level; }
+
+.rank-badge { -fx-background-radius: 8; -fx-padding: 4 12; -fx-font-weight: bold; -fx-font-size: 12.5px; }
+.rank-badge.rank-e { -fx-background-color: -nx-rank-e-bg; -fx-text-fill: -nx-rank-e; }
+.rank-badge.rank-d { -fx-background-color: -nx-rank-d-bg; -fx-text-fill: -nx-rank-d; }
+.rank-badge.rank-c { -fx-background-color: -nx-rank-c-bg; -fx-text-fill: -nx-rank-c; }
+.rank-badge.rank-b { -fx-background-color: -nx-rank-b-bg; -fx-text-fill: -nx-rank-b; }
+.rank-badge.rank-a { -fx-background-color: -nx-rank-a-bg; -fx-text-fill: -nx-rank-a; }
+.rank-badge.rank-s { -fx-background-color: -nx-rank-s-bg; -fx-text-fill: -nx-rank-s; }
+
+.avatar {
+    -fx-background-color: -nx-surface-2;
+    -fx-background-radius: 100;
+    -fx-border-radius: 100;
+    -fx-border-width: 2.5;
+    -fx-text-fill: -nx-text-strong;
+    -fx-font-weight: bold;
+}
+.avatar.rank-e { -fx-border-color: -nx-rank-e; }
+.avatar.rank-d { -fx-border-color: -nx-rank-d; }
+.avatar.rank-c { -fx-border-color: -nx-rank-c; }
+.avatar.rank-b { -fx-border-color: -nx-rank-b; }
+.avatar.rank-a { -fx-border-color: -nx-rank-a; }
+.avatar.rank-s { -fx-border-color: -nx-rank-s; -fx-effect: dropshadow(gaussian, rgba(251,191,36,0.55), 16, 0.2, 0, 0); }
+
+.grade-badge { -fx-font-size: 34px; -fx-font-weight: bold; -fx-min-width: 64px; -fx-alignment: CENTER; }
+.grade-s { -fx-text-fill: -nx-rank-s; }
+.grade-a { -fx-text-fill: -nx-rank-a; }
+.grade-b { -fx-text-fill: -nx-rank-b; }
+.grade-c { -fx-text-fill: -nx-rank-c; }
+.grade-d { -fx-text-fill: -nx-rank-d; }
+.grade-e { -fx-text-fill: -nx-rank-e; }
+
+/* ---------- полоса XP ---------- */
+.xp-track { -fx-background-color: -nx-track; -fx-background-radius: 7; -fx-background-insets: 0; }
+.xp-fill { -fx-background-color: -nx-accent-gradient; -fx-background-radius: 7; -fx-background-insets: 0; }
+.xp-fill.rank-fill { -fx-background-color: -nx-rank-fill; }
+
+/* ---------- кнопки ---------- */
+.button, .toggle-button {
+    -fx-background-color: -nx-surface-2;
+    -fx-background-insets: 0;
+    -fx-background-radius: 10;
+    -fx-border-color: -nx-border;
+    -fx-border-radius: 10;
+    -fx-border-width: 1;
+    -fx-text-fill: -nx-text;
+    -fx-font-weight: bold;
+    -fx-padding: 9 18;
+    -fx-graphic-text-gap: 8;
+    -fx-cursor: hand;
+}
+.button:hover { -fx-background-color: -nx-hover; }
+.button:focused { -fx-border-color: -nx-accent; }
+.button:disabled { -fx-opacity: 0.45; }
+.button .icon { -fx-background-color: -nx-text; }
+
+.button.primary {
+    -fx-background-color: -nx-accent-gradient;
+    -fx-border-color: transparent;
+    -fx-text-fill: white;
+}
+.button.primary:hover { -fx-effect: dropshadow(gaussian, rgba(91,140,255,0.55), 16, 0, 0, 0); }
+.button.primary .icon { -fx-background-color: white; }
+
+.button.danger-solid { -fx-background-color: #e5484d; -fx-border-color: transparent; -fx-text-fill: white; }
+.button.danger-solid:hover { -fx-background-color: #f0565b; }
+
+.button.ghost { -fx-background-color: transparent; }
+.button.ghost:hover { -fx-background-color: -nx-hover; }
+
+.button.icon-button { -fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 9 11; }
+.button.icon-button .icon { -fx-background-color: -nx-dim; }
+.button.icon-button.danger:hover { -fx-background-color: -nx-danger-soft; }
+.button.icon-button.danger:hover .icon { -fx-background-color: -nx-danger; }
+
+/* фильтры и переключатель типа */
+.filter-button, .seg-button {
+    -fx-background-color: transparent;
+    -fx-border-color: -nx-border;
+    -fx-background-radius: 20;
+    -fx-border-radius: 20;
+    -fx-text-fill: -nx-dim;
+    -fx-padding: 6 16;
+    -fx-font-size: 13px;
+}
+.seg-button { -fx-background-radius: 10; -fx-border-radius: 10; -fx-padding: 9 16; -fx-alignment: CENTER; }
+.filter-button:hover, .seg-button:hover { -fx-background-color: -nx-hover; -fx-text-fill: -nx-text; }
+.filter-button:selected, .seg-button:selected {
+    -fx-background-color: -nx-accent-soft;
+    -fx-border-color: -nx-accent;
+    -fx-text-fill: -nx-text-strong;
+}
+
+/* ---------- поля ввода ---------- */
+.text-field, .text-area, .password-field {
+    -fx-control-inner-background: -nx-surface-2;
+    -fx-background-color: -nx-border, -nx-surface-2;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 10, 9;
+    -fx-text-fill: -nx-text;
+    -fx-prompt-text-fill: -nx-prompt;
+    -fx-highlight-fill: -nx-accent;
+    -fx-highlight-text-fill: white;
+    -fx-padding: 10 12;
+}
+.text-area { -fx-padding: 2; }
+.text-area .content { -fx-background-color: -nx-surface-2; -fx-background-radius: 9; }
+.text-field:focused, .text-area:focused, .password-field:focused {
+    -fx-background-color: -nx-accent, -nx-surface-2;
+}
+.search-field { -fx-background-radius: 20, 19; -fx-padding: 9 16; -fx-min-width: 240px; }
+.field-label { -fx-font-size: 12.5px; -fx-font-weight: bold; -fx-text-fill: -nx-dim; }
+
+.spinner {
+    -fx-background-color: -nx-border, -nx-surface-2;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 10, 9;
+}
+.spinner:focused { -fx-background-color: -nx-accent, -nx-surface-2; }
+.spinner .text-field { -fx-background-color: transparent; -fx-background-insets: 0; -fx-text-fill: -nx-text; }
+.spinner .increment-arrow-button, .spinner .decrement-arrow-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+}
+.spinner .increment-arrow-button:hover, .spinner .decrement-arrow-button:hover { -fx-background-color: -nx-hover; }
+.spinner .increment-arrow, .spinner .decrement-arrow { -fx-background-color: -nx-dim; }
+
+.slider .track { -fx-background-color: -nx-track; -fx-background-insets: 0; -fx-background-radius: 4; -fx-padding: 3; }
+.slider .thumb {
+    -fx-background-color: -nx-slider-thumb;
+    -fx-background-insets: 0;
+    -fx-background-radius: 20;
+    -fx-padding: 8;
+    -fx-effect: dropshadow(gaussian, rgba(91,140,255,0.6), 10, 0, 0, 0);
+}
+.slider .axis { -fx-tick-label-fill: -nx-dim; }
+
+/* ---------- полосы прокрутки ---------- */
+.scroll-bar { -fx-background-color: transparent; -fx-padding: 2; }
+.scroll-bar:vertical .track, .scroll-bar:horizontal .track { -fx-background-color: transparent; -fx-border-color: transparent; }
+.scroll-bar .thumb { -fx-background-color: -nx-scroll-thumb; -fx-background-insets: 0; -fx-background-radius: 6; }
+.scroll-bar .thumb:hover { -fx-background-color: -nx-scroll-thumb-hover; }
+.scroll-bar .increment-button, .scroll-bar .decrement-button { -fx-background-color: transparent; -fx-padding: 0; }
+.scroll-bar .increment-arrow, .scroll-bar .decrement-arrow { -fx-padding: 0; -fx-background-color: transparent; }
+.scroll-bar:vertical { -fx-pref-width: 12; }
+
+/* ---------- диалоги и Alert ---------- */
+.nx-dialog {
+    -fx-background-color: -nx-surface;
+    -fx-border-color: -nx-border-strong;
+    -fx-border-width: 1;
+    -fx-padding: 22;
+}
+.nx-dialog > .button-bar { -fx-background-color: transparent; -fx-padding: 14 0 0 0; }
+.nx-dialog > .button-bar > .container { -fx-background-color: transparent; -fx-padding: 0; }
+.nx-dialog .label { -fx-text-fill: -nx-text; }
+.dialog-title { -fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: -nx-text-strong; }
+.dialog-text { -fx-text-fill: -nx-dim; }
+.result-box { -fx-background-color: -nx-surface-2; -fx-background-radius: 12; -fx-padding: 12 16; }
+
+/* ---------- уведомления ---------- */
+.toast {
+    -fx-background-color: -nx-toast-bg;
+    -fx-background-radius: 12;
+    -fx-border-color: -nx-border-strong;
+    -fx-border-radius: 12;
+    -fx-padding: 12 18;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 18, 0, 0, 6);
+}
+.toast-success { -fx-border-color: -nx-success; }
+.toast-error   { -fx-border-color: -nx-danger; -fx-background-color: -nx-toast-error-bg; }
+.toast-levelup {
+    -fx-background-color: -nx-levelup-bg;
+    -fx-border-color: #fbbf24;
+    -fx-effect: dropshadow(gaussian, rgba(251,191,36,0.5), 22, 0.1, 0, 0);
+}
+
+.tooltip { -fx-background-color: -nx-toast-bg; -fx-text-fill: white; -fx-background-radius: 8; -fx-font-size: 12px; }
+
+/* ---------- иконки ---------- */
+.icon { -fx-background-color: -nx-dim; }
+
+.chip-deadline { -fx-background-color: -nx-target-bg; -fx-text-fill: -nx-target; }
+.chip-overdue { -fx-background-color: -nx-overdue-bg; -fx-text-fill: -nx-overdue; }
+.chip-grade { -fx-background-color: -nx-surface-2; -fx-border-color: -nx-border-strong; -fx-border-radius: 20; -fx-border-width: 1; }
+
+.quest-card-overdue { -fx-border-color: -nx-overdue; }
+.quest-card-overdue:hover { -fx-border-color: -nx-overdue; }
+.quest-card-overdue .quest-title { -fx-text-fill: -nx-overdue; }
+.row-overdue { -fx-border-color: -nx-overdue; -fx-border-radius: 12; -fx-border-width: 1; }
+
+.lb-row { -fx-background-color: -nx-surface-2; -fx-background-insets: 0; -fx-background-radius: 12; -fx-padding: 8 14; }
+.lb-row-me { -fx-background-color: -nx-accent-soft; -fx-border-color: -nx-accent; -fx-border-radius: 12; -fx-border-width: 1; }
+.lb-pos { -fx-font-weight: bold; -fx-text-fill: -nx-dim; -fx-min-width: 28px; -fx-alignment: CENTER; }
+.lb-pos-1 { -fx-text-fill: -nx-rank-s; }
+.lb-pos-2 { -fx-text-fill: -nx-rank-e; }
+.lb-pos-3 { -fx-text-fill: -nx-rank-a; }
+.lb-name { -fx-font-weight: bold; -fx-text-fill: -nx-text; }
+.lb-xp { -fx-font-weight: bold; -fx-text-fill: -nx-xp; }
+
+.achievement-tile {
+    -fx-background-color: -nx-surface-2;
+    -fx-background-insets: 0;
+    -fx-background-radius: 12;
+    -fx-border-color: -nx-rank-s;
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-padding: 8 14;
+}
+.achievement-icon { -fx-font-size: 20px; -fx-text-fill: -nx-rank-s; }
+.achievement-title { -fx-font-weight: bold; -fx-text-fill: -nx-text-strong; }
+.achievement-desc { -fx-text-fill: -nx-dim; -fx-font-size: 12px; }
+
+.toast-achievement { -fx-border-color: -nx-rank-s; }
+
+.logout-button { -fx-padding: 10 16; -fx-alignment: CENTER_LEFT; -fx-graphic-text-gap: 12; }
+.side-profile:hover { -fx-background-color: -nx-hover; }
+
+.date-picker {
+    -fx-background-color: -nx-border, -nx-surface-2;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 10, 9;
+}
+.date-picker:focused { -fx-background-color: -nx-accent, -nx-surface-2; }
+.date-picker > .text-field { -fx-background-color: transparent; -fx-background-insets: 0; }
+.date-picker > .arrow-button { -fx-background-color: transparent; -fx-background-insets: 0; }
+.date-picker > .arrow-button > .arrow-button-icon, .date-picker > .arrow-button .arrow { -fx-background-color: -nx-dim; }
+.date-picker-popup {
+    -fx-background-color: -nx-surface;
+    -fx-background-insets: 0;
+    -fx-border-color: -nx-border-strong;
+    -fx-border-width: 1;
+}
+.date-picker-popup .month-year-pane { -fx-background-color: -nx-surface-2; }
+.date-picker-popup .spinner .label { -fx-text-fill: -nx-text; }
+.date-picker-popup .spinner .button { -fx-background-color: transparent; -fx-border-color: transparent; }
+.date-picker-popup .day-name-cell, .date-picker-popup .week-number-cell { -fx-text-fill: -nx-dim; }
+.date-picker-popup .day-cell { -fx-background-color: transparent; -fx-text-fill: -nx-text; }
+.date-picker-popup .day-cell:hover { -fx-background-color: -nx-hover; }
+.date-picker-popup .day-cell:selected { -fx-background-color: -nx-accent; -fx-text-fill: white; }
+.date-picker-popup .day-cell:disabled { -fx-opacity: 0.35; }
+.date-picker-popup .day-cell.today { -fx-border-color: -nx-accent; }

@@ -3,28 +3,33 @@ package db;
 import exception.DataAccessException;
 import model.DailyTask;
 import model.GlobalQuest;
+import model.PerformanceGrade;
 import model.Task;
 import model.WeeklyTask;
 
 import java.sql.*;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 public class H2TaskRepositoryImpl implements TaskRepository {
 
-    /** SQLState нарушения уникальности/первичного ключа */
-    private static final String UNIQUE_VIOLATION = "23505";
-
     @Override
     public void insertTask(Task task, String userId) {
-        // Именно INSERT, а не MERGE: при совпадении id получаем ошибку, а не молчаливую перезапись чужой задачи
-        String sql = "INSERT INTO tasks (id, user_id, task_type, title, description, base_xp, completed, target_score) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        try (Connection conn = DatabaseManager.getConnection()) {
+            insertTask(conn, task, userId);
+        } catch (SQLException e) {
+            throw new DataAccessException("Failed to save task: " + task.getId(), e);
+        }
+    }
 
-        try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+    @Override
+    public void insertTask(Connection conn, Task task, String userId) {
+        String sql = "INSERT INTO tasks (id, user_id, task_type, title, description, base_xp, completed, target_score, deadline, grade) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, task.getId());
             pstmt.setString(2, userId);
             pstmt.setString(3, typeOf(task));
@@ -33,10 +38,12 @@ public class H2TaskRepositoryImpl implements TaskRepository {
             pstmt.setInt(6, task.getBaseXp());
             pstmt.setBoolean(7, task.isCompleted());
             setTargetScore(pstmt, 8, task);
+            setDeadline(pstmt, 9, task);
+            setGrade(pstmt, 10, task);
 
             pstmt.executeUpdate();
         } catch (SQLException e) {
-            if (UNIQUE_VIOLATION.equals(e.getSQLState())) {
+            if (SqlErrors.isUniqueViolation(e)) {
                 throw new DataAccessException("Task with ID already exists: " + task.getId(), e);
             }
             throw new DataAccessException("Failed to save task: " + task.getId(), e);
@@ -45,9 +52,8 @@ public class H2TaskRepositoryImpl implements TaskRepository {
 
     @Override
     public void updateTask(Connection conn, Task task, String userId) {
-        // user_id в условии: нельзя изменить задачу другого пользователя
-        String sql = "UPDATE tasks SET title = ?, description = ?, base_xp = ?, completed = ?, target_score = ? " +
-                "WHERE id = ? AND user_id = ?";
+        String sql = "UPDATE tasks SET title = ?, description = ?, base_xp = ?, completed = ?, target_score = ?, " +
+                "deadline = ?, grade = ? WHERE id = ? AND user_id = ?";
 
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, task.getTitle());
@@ -55,8 +61,10 @@ public class H2TaskRepositoryImpl implements TaskRepository {
             pstmt.setInt(3, task.getBaseXp());
             pstmt.setBoolean(4, task.isCompleted());
             setTargetScore(pstmt, 5, task);
-            pstmt.setString(6, task.getId());
-            pstmt.setString(7, userId);
+            setDeadline(pstmt, 6, task);
+            setGrade(pstmt, 7, task);
+            pstmt.setString(8, task.getId());
+            pstmt.setString(9, userId);
 
             if (pstmt.executeUpdate() == 0) {
                 throw new DataAccessException("Task not found for this user: " + task.getId());
@@ -87,7 +95,7 @@ public class H2TaskRepositoryImpl implements TaskRepository {
     @Override
     public List<Task> findByUserId(String userId) {
         List<Task> tasks = new ArrayList<>();
-        String sql = "SELECT * FROM tasks WHERE user_id = ?";
+        String sql = "SELECT * FROM tasks WHERE user_id = ? ORDER BY deadline ASC NULLS LAST, base_xp DESC";
 
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -149,6 +157,22 @@ public class H2TaskRepositoryImpl implements TaskRepository {
         }
     }
 
+    private static void setDeadline(PreparedStatement pstmt, int index, Task task) throws SQLException {
+        if (task.getDeadline() != null) {
+            pstmt.setObject(index, task.getDeadline());
+        } else {
+            pstmt.setNull(index, Types.DATE);
+        }
+    }
+
+    private static void setGrade(PreparedStatement pstmt, int index, Task task) throws SQLException {
+        if (task.getGrade() != null) {
+            pstmt.setString(index, task.getGrade().name());
+        } else {
+            pstmt.setNull(index, Types.VARCHAR);
+        }
+    }
+
     private Task mapRowToTask(ResultSet rs) throws SQLException {
         String id = rs.getString("id");
         String title = rs.getString("title");
@@ -164,6 +188,11 @@ public class H2TaskRepositoryImpl implements TaskRepository {
         };
 
         task.setCompleted(completed);
+        task.setDeadline(rs.getObject("deadline", LocalDate.class));
+        String grade = rs.getString("grade");
+        if (grade != null) {
+            task.setGrade(PerformanceGrade.valueOf(grade));
+        }
         return task;
     }
 }

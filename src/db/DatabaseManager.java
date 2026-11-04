@@ -17,11 +17,6 @@ public class DatabaseManager {
     private DatabaseManager() {
     }
 
-    /**
-     * Пул создаётся лениво, а не в static-блоке. Раньше при ошибке подключения (например, файл БД занят)
-     * класс «ломался» навсегда: ExceptionInInitializerError, а затем NoClassDefFoundError в shutdown(),
-     * который скрывал настоящую причину.
-     */
     private static synchronized HikariDataSource dataSource() {
         if (dataSource == null) {
             dataSource = createDataSource();
@@ -72,7 +67,9 @@ public class DatabaseManager {
                 name VARCHAR(100) NOT NULL,
                 level INT DEFAULT 1,
                 current_xp INT DEFAULT 0,
-                rank VARCHAR(20) DEFAULT 'E_RANK'
+                rank VARCHAR(20) DEFAULT 'E_RANK',
+                password_hash VARCHAR(128),
+                avatar_path VARCHAR(500)
             )
             """;
         String tasks = """
@@ -85,22 +82,48 @@ public class DatabaseManager {
                 base_xp INT NOT NULL,
                 completed BOOLEAN DEFAULT FALSE,
                 target_score INT,
+                deadline DATE,
+                grade VARCHAR(2),
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )
             """;
-        // по одному запросу на execute() — не зависим от поддержки multi-statement драйвером
+        String achievements = """
+            CREATE TABLE IF NOT EXISTS achievements (
+                id VARCHAR(50) PRIMARY KEY,
+                title VARCHAR(100) NOT NULL,
+                description VARCHAR(255),
+                icon VARCHAR(20)
+            )
+            """;
+        String userAchievements = """
+            CREATE TABLE IF NOT EXISTS user_achievements (
+                user_id VARCHAR(50) NOT NULL,
+                achievement_id VARCHAR(50) NOT NULL,
+                unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                PRIMARY KEY (user_id, achievement_id),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (achievement_id) REFERENCES achievements(id) ON DELETE CASCADE
+            )
+            """;
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
             stmt.execute(users);
             stmt.execute(tasks);
+            stmt.execute(achievements);
+            stmt.execute(userAchievements);
+            stmt.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(128)");
+            stmt.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_path VARCHAR(500)");
+            stmt.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS deadline DATE");
+            stmt.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS grade VARCHAR(2)");
+            try {
+                stmt.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_users_name ON users(name)");
+            } catch (SQLException e) {
+                System.err.println("Warning: unique index on users.name was not created: " + e.getMessage());
+            }
         } catch (SQLException e) {
             throw new DataAccessException("Failed to initialize database tables", e);
         }
     }
 
-    /**
-     * Выполняет work в одной транзакции: commit при успехе, rollback при любой ошибке.
-     * Исключения DataAccessException пробрасываются как есть.
-     */
     public static void inTransaction(TransactionWork work) {
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
@@ -124,7 +147,6 @@ public class DatabaseManager {
     }
 
     public static synchronized void shutdown() {
-        // не создаём пул ради того, чтобы тут же его закрыть
         if (dataSource != null && !dataSource.isClosed()) {
             dataSource.close();
         }

@@ -1,0 +1,74 @@
+/* СВЕТЛАЯ ТЕМА (университетский стиль: белый фон, красные акценты, тёмный текст).
+   Хотите чисто белый фон страницы — поставьте -nx-bg: #ffffff. */
+.root, .nx-dialog {
+    -fx-font-family: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
+    -fx-base: #f3f4f6;
+    -fx-accent: #c8102e;
+    -fx-focus-color: #c8102e;
+    -fx-faint-focus-color: transparent;
+
+    /* фон и поверхности */
+    -nx-bg: #f6f7f9;
+    -nx-surface: #ffffff;
+    -nx-surface-2: #f3f4f6;
+    -nx-hover: #fdeef0;
+    -nx-border: #e5e7eb;
+    -nx-border-strong: #d1d5db;
+    -nx-track: #e5e7eb;
+    -nx-empty-bg: #fbfbfc;
+    -nx-hero-bg: linear-gradient(to bottom right, #fff1f2, #ffffff);
+
+    /* текст */
+    -nx-text: #1f2937;
+    -nx-text-strong: #111827;
+    -nx-dim: #6b7280;
+    -nx-prompt: #9ca3af;
+
+    /* акценты: университетский красный */
+    -nx-accent: #c8102e;
+    -nx-accent-2: #8f0b22;
+    -nx-accent-gradient: linear-gradient(to right, #d6142f, #a50d26);
+    -nx-accent-soft: rgba(200,16,46,0.10);
+    -nx-success: #16a34a;
+    -nx-danger: #dc2626;
+    -nx-danger-soft: rgba(220,38,38,0.10);
+    -nx-overdue: #dc2626;
+    -nx-overdue-bg: #fee2e2;
+
+    /* навигация */
+    -nx-nav-selected-bg: rgba(200,16,46,0.10);
+    -nx-nav-selected-text: #a50d26;
+    -nx-nav-icon-selected: #c8102e;
+
+    /* типы квестов и чипы */
+    -nx-daily: #15803d;   -nx-daily-bg: #dcfce7;
+    -nx-weekly: #b45309;  -nx-weekly-bg: #fef3c7;
+    -nx-global: #be185d;  -nx-global-bg: #fce7f3;
+    -nx-global-stripe: linear-gradient(to bottom, #c8102e, #be185d);
+    -nx-xp: #b91c1c;      -nx-xp-bg: #fee2e2;
+    -nx-target: #475569;  -nx-target-bg: #f1f5f9;
+    -nx-level: #6d28d9;   -nx-level-bg: #ede9fe;
+
+    /* ранги E → S (они же — цвета оценок) */
+    -nx-rank-e: #64748b;  -nx-rank-e-bg: #f1f5f9;
+    -nx-rank-d: #15803d;  -nx-rank-d-bg: #dcfce7;
+    -nx-rank-c: #0369a1;  -nx-rank-c-bg: #e0f2fe;
+    -nx-rank-b: #6d28d9;  -nx-rank-b-bg: #ede9fe;
+    -nx-rank-a: #c2410c;  -nx-rank-a-bg: #ffedd5;
+    -nx-rank-s: #b45309;  -nx-rank-s-bg: #fef3c7;
+    -nx-rank-fill: linear-gradient(to right, #f59e0b, #fbbf24);
+
+    /* прокрутка, ползунок, уведомления (уведомления тёмные — как «снекбар») */
+    -nx-scroll-thumb: #cbd5e1;
+    -nx-scroll-thumb-hover: #94a3b8;
+    -nx-slider-thumb: #c8102e;
+    -nx-toast-bg: #1f2937;
+    -nx-toast-error-bg: #3b1219;
+    -nx-levelup-bg: linear-gradient(to right, #8f0b22, #d6142f);
+}
+
+/* На светлом фоне тени должны быть мягкими, а свечение — красным */
+.card, .quest-card { -fx-effect: dropshadow(gaussian, rgba(17,24,39,0.08), 14, 0, 0, 4); }
+.button.primary:hover { -fx-effect: dropshadow(gaussian, rgba(200,16,46,0.40), 14, 0, 0, 0); }
+.slider .thumb { -fx-effect: dropshadow(gaussian, rgba(200,16,46,0.35), 8, 0, 0, 0); }
+.brand-title { -fx-text-fill: -nx-accent; }

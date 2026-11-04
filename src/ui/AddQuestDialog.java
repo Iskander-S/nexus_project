@@ -4,6 +4,8 @@ import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.DateCell;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.Spinner;
@@ -20,6 +22,7 @@ import model.GlobalQuest;
 import model.Task;
 import model.WeeklyTask;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 public final class AddQuestDialog extends Dialog<Task> {
@@ -57,6 +60,17 @@ public final class AddQuestDialog extends Dialog<Task> {
         Spinner<Integer> xp = Ui.intSpinner(1, 10_000, kind.defaultXp());
         Spinner<Integer> target = Ui.intSpinner(1, 100, 90);
 
+        DatePicker deadline = new DatePicker();
+        deadline.setPromptText("No deadline");
+        deadline.setMaxWidth(Double.MAX_VALUE);
+        deadline.setDayCellFactory(picker -> new DateCell() {
+            @Override
+            public void updateItem(LocalDate item, boolean empty) {
+                super.updateItem(item, empty);
+                setDisable(empty || item.isBefore(LocalDate.now()));
+            }
+        });
+
         VBox xpBox = field("Base XP", xp);
         VBox targetBox = field("Target score (1–100)", target);
         HBox.setHgrow(xpBox, Priority.ALWAYS);
@@ -65,7 +79,7 @@ public final class AddQuestDialog extends Dialog<Task> {
         targetBox.setManaged(false);
 
         group.selectedToggleProperty().addListener((obs, oldToggle, newToggle) -> {
-            if (newToggle == null) {          // нельзя снять выбор — тип всегда задан
+            if (newToggle == null) {
                 group.selectToggle(oldToggle);
                 return;
             }
@@ -83,7 +97,8 @@ public final class AddQuestDialog extends Dialog<Task> {
                 kindHint,
                 field("Title", title),
                 field("Description", description),
-                new HBox(14, xpBox, targetBox));
+                new HBox(14, xpBox, targetBox),
+                field("Deadline (optional)", deadline));
         content.setPadding(new Insets(0, 0, 4, 0));
         getDialogPane().setContent(content);
 
@@ -101,11 +116,13 @@ public final class AddQuestDialog extends Dialog<Task> {
             String name = title.getText().trim();
             String details = description.getText().trim();
             int baseXp = xp.getValue();
-            return switch (kind) {
+            Task task = switch (kind) {
                 case DAILY -> new DailyTask(id, name, details, baseXp);
                 case WEEKLY -> new WeeklyTask(id, name, details, baseXp);
                 case GLOBAL -> new GlobalQuest(id, name, details, baseXp, target.getValue());
             };
+            task.setDeadline(deadline.getValue());
+            return task;
         });
 
         setOnShown(e -> title.requestFocus());

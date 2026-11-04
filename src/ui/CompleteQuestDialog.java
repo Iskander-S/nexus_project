@@ -12,15 +12,15 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Window;
-import model.GlobalQuest;
 import model.PerformanceGrade;
+import model.Task;
 
 public final class CompleteQuestDialog extends Dialog<Integer> {
-    private final GlobalQuest quest;
+    private final Task quest;
     private final Label gradeBadge = Ui.label("", "grade-badge");
     private final Label xpLabel = Ui.label("", "dialog-text");
 
-    public CompleteQuestDialog(Window owner, GlobalQuest quest) {
+    public CompleteQuestDialog(Window owner, Task quest) {
         this.quest = quest;
 
         ButtonType cancelType = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);

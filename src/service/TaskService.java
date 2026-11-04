@@ -2,12 +2,17 @@ package service;
 
 import db.TaskRepository;
 import db.TransactionRunner;
-import model.Evaluatable;
+import model.DailyTask;
+import model.GlobalQuest;
 import model.Task;
 import model.User;
+import model.WeeklyTask;
 
+import java.sql.Connection;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public class TaskService {
     private final TaskRepository taskRepository;
@@ -41,7 +46,37 @@ public class TaskService {
         taskRepository.insertTask(task, userId);
     }
 
-    /** Все задачи пользователя (и активные, и выполненные). */
+    public List<Task> assignStarterQuests(Connection conn, String userId) {
+        List<Task> quests = buildStarterQuests();
+        for (Task quest : quests) {
+            taskRepository.insertTask(conn, quest, userId);
+        }
+        return quests;
+    }
+
+    public static List<Task> buildStarterQuests() {
+        LocalDate today = LocalDate.now();
+        return List.of(
+                withDeadline(new DailyTask(newId(), "Setup University Email",
+                        "Activate your student mailbox and read the welcome letter.", 60), today.plusDays(1)),
+                withDeadline(new DailyTask(newId(), "Find Campus Cafeteria",
+                        "Locate the cafeteria and its opening hours.", 50), today.plusDays(2)),
+                withDeadline(new WeeklyTask(newId(), "Get Library Card",
+                        "Visit the library desk with your student ID and get a reader's card.", 100), today.plusDays(7)),
+                withDeadline(new GlobalQuest(newId(), "Pass the Orientation Quiz",
+                        "Finish the first-year orientation quiz. Enter your result as a score.", 200, 80),
+                        today.plusDays(14)));
+    }
+
+    private static Task withDeadline(Task task, LocalDate deadline) {
+        task.setDeadline(deadline);
+        return task;
+    }
+
+    private static String newId() {
+        return "T-" + UUID.randomUUID().toString().substring(0, 8);
+    }
+
     public List<Task> getTasks(String userId) {
         return taskRepository.findByUserId(userId);
     }
@@ -49,6 +84,7 @@ public class TaskService {
     public List<Task> getActiveTasks(String userId) {
         return getTasks(userId).stream()
                 .filter(task -> !task.isCompleted())
+                .sorted(Task.DEADLINE_ORDER)
                 .toList();
     }
 
@@ -58,10 +94,6 @@ public class TaskService {
                 .toList();
     }
 
-    /**
-     * Удаляет задачу пользователя. Репозиторий удаляет по одному id и не знает о владельце,
-     * поэтому принадлежность проверяется здесь: чужую задачу удалить нельзя.
-     */
     public void deleteTask(String userId, String taskId) {
         if (taskId == null || taskId.isBlank()) {
             throw new IllegalArgumentException("Task ID must not be empty");
@@ -74,7 +106,6 @@ public class TaskService {
         taskRepository.deleteById(task.getId());
     }
 
-    /** Ищет активную задачу пользователя по ID (без учёта регистра и пробелов по краям). */
     public Optional<Task> findActiveTask(String userId, String taskId) {
         if (taskId == null || taskId.isBlank()) {
             return Optional.empty();
@@ -89,43 +120,33 @@ public class TaskService {
         return completeTask(taskId, user, null);
     }
 
-    /**
-     * Завершает квест и начисляет XP.
-     *
-     * @param score оценка 0..100; обязательна для квестов с оценкой (Evaluatable), иначе игнорируется
-     * @return сколько XP начислено
-     */
     public int completeTask(String taskId, User user, Integer score) {
+        return complete(taskId, user, score).xp();
+    }
+
+    public CompletionResult complete(String taskId, User user, Integer score) {
         if (taskId == null || taskId.isBlank()) {
             throw new IllegalArgumentException("Task ID must not be empty");
         }
         Task task = findActiveTask(user.getId(), taskId)
                 .orElseThrow(() -> new IllegalArgumentException("Active task not found: " + taskId.trim()));
+        if (score == null) {
+            throw new IllegalArgumentException("Score (0-100) is required to complete this quest");
+        }
 
-        int xp = calculateXp(task, score); // task здесь — свежая копия из БД, её изменение в памяти безопасно
+        EvaluationResult evaluation = evaluationService.evaluate(task, score);
+        int xp = evaluation.totalXp();
 
-        // Работаем с копией профиля: настоящий user меняем только после успешного коммита
-        User updated = new User(user.getId(), user.getName(), user.getLevel(), user.getCurrentXp(), user.getRank());
+        User updated = new User(user.getId(), user.getName(), user.getLevel(), user.getCurrentXp(), user.getRank(),
+                user.getAvatarPath());
         updated.addXp(xp);
 
-        // Задача и XP сохраняются атомарно: либо оба изменения, либо ни одного
         transactions.inTransaction(conn -> {
             taskRepository.updateTask(conn, task, user.getId());
             userService.updateProfile(conn, updated);
         });
 
         user.addXp(xp);
-        return xp;
-    }
-
-    private int calculateXp(Task task, Integer score) {
-        if (task instanceof Evaluatable) {
-            if (score == null) {
-                throw new IllegalArgumentException("Score (0-100) is required to complete this quest");
-            }
-            return evaluationService.processTaskEvaluation(task, score); // сам помечает задачу выполненной
-        }
-        task.complete();
-        return task.getBaseXp();
+        return new CompletionResult(xp, evaluation.grade(), List.of());
     }
 }

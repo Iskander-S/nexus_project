@@ -4,21 +4,25 @@ import db.UserRepository;
 import exception.DataAccessException;
 import model.DailyTask;
 import model.GlobalQuest;
+import model.PerformanceGrade;
 import model.Task;
 import model.User;
 import model.WeeklyTask;
 import org.junit.jupiter.api.Test;
+import service.CompletionResult;
 import service.EvaluationService;
 import service.TaskService;
 import service.UserService;
 
 import java.sql.Connection;
+import java.time.LocalDate;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class TaskServiceTest {
+
     static class MemUsers implements UserRepository {
         Map<String, User> data = new HashMap<>();
         boolean failOnSave;
@@ -26,13 +30,25 @@ class TaskServiceTest {
         public User save(User u) { return save(null, u); }
         public User save(Connection c, User u) {
             if (failOnSave) throw new DataAccessException("boom");
-            data.put(u.getId(), new User(u.getId(), u.getName(), u.getLevel(), u.getCurrentXp(), u.getRank()));
+            data.put(u.getId(), new User(u.getId(), u.getName(), u.getLevel(), u.getCurrentXp(), u.getRank(), u.getAvatarPath()));
             return u;
         }
         public Optional<User> findById(String id) { return Optional.ofNullable(data.get(id)); }
-        public Optional<User> findByName(String n) { return data.values().stream().filter(u -> u.getName().equals(n)).findFirst(); }
+        public Optional<User> findByName(String n) { return data.values().stream().filter(u -> u.getName().equalsIgnoreCase(n)).findFirst(); }
+        public Map<String, String> hashes = new HashMap<>();
+        public Optional<String> findPasswordHash(String userId) { return Optional.ofNullable(hashes.get(userId)); }
+        public void setPasswordHash(Connection c, String userId, String hash) {
+            if (!data.containsKey(userId)) throw new DataAccessException("User not found: " + userId);
+            hashes.put(userId, hash);
+        }
         public List<User> findAll() { return new ArrayList<>(data.values()); }
         public boolean deleteById(String id) { return data.remove(id) != null; }
+        public List<User> findTopByXp(int limit) {
+            return data.values().stream()
+                    .sorted(Comparator.comparingInt(User::getCurrentXp).reversed().thenComparing(User::getName))
+                    .limit(limit)
+                    .toList();
+        }
     }
 
     static class MemTasks implements TaskRepository {
@@ -43,6 +59,7 @@ class TaskServiceTest {
             if (data.containsKey(t.getId())) throw new DataAccessException("Task with ID already exists: " + t.getId());
             data.put(t.getId(), copy(t)); owner.put(t.getId(), userId);
         }
+        public void insertTask(Connection c, Task t, String userId) { insertTask(t, userId); }
         public void updateTask(Connection c, Task t, String userId) {
             if (!userId.equals(owner.get(t.getId()))) throw new DataAccessException("Task not found for this user");
             data.put(t.getId(), copy(t));
@@ -64,6 +81,8 @@ class TaskServiceTest {
                 r = new DailyTask(t.getId(), t.getTitle(), t.getDescription(), t.getBaseXp());
             }
             r.setCompleted(t.isCompleted());
+            r.setDeadline(t.getDeadline());
+            r.setGrade(t.getGrade());
             return r;
         }
     }
@@ -102,7 +121,7 @@ class TaskServiceTest {
         TaskService service = service();
         service.assignTask(new DailyTask("T-1", "Run", "d", 120), user.getId());
 
-        int xp = service.completeTask("T-1", user);
+        int xp = service.completeTask("T-1", user, 50);
 
         assertThat(xp).isEqualTo(120);
         assertThat(user.getCurrentXp()).isEqualTo(120);
@@ -116,7 +135,7 @@ class TaskServiceTest {
         TaskService service = service();
         service.assignTask(new DailyTask("T-abc12345", "Run", "d", 10), user.getId());
 
-        assertThat(service.completeTask("  t-ABC12345 ", user)).isEqualTo(10);
+        assertThat(service.completeTask("  t-ABC12345 ", user, 50)).isEqualTo(10);
     }
 
     @Test
@@ -124,9 +143,9 @@ class TaskServiceTest {
         User user = newUser();
         TaskService service = service();
         service.assignTask(new DailyTask("T-1", "Run", "d", 50), user.getId());
-        service.completeTask("T-1", user);
+        service.completeTask("T-1", user, 50);
 
-        assertThatThrownBy(() -> service.completeTask("T-1", user)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> service.completeTask("T-1", user, 50)).isInstanceOf(IllegalArgumentException.class);
         assertThat(user.getCurrentXp()).isEqualTo(50);
     }
 
@@ -168,10 +187,10 @@ class TaskServiceTest {
         service.assignTask(new DailyTask("T-1", "Run", "d", 100), user.getId());
         users.failOnSave = true;
 
-        assertThatThrownBy(() -> service.completeTask("T-1", user)).isInstanceOf(DataAccessException.class);
+        assertThatThrownBy(() -> service.completeTask("T-1", user, 50)).isInstanceOf(DataAccessException.class);
 
-        assertThat(user.getCurrentXp()).isZero();                                     // память не изменилась
-        assertThat(service.getActiveTasks(user.getId()).size()).isEqualTo(1);        // задача снова активна (rollback)
+        assertThat(user.getCurrentXp()).isZero();
+        assertThat(service.getActiveTasks(user.getId()).size()).isEqualTo(1);
     }
 
     @Test
@@ -207,7 +226,7 @@ class TaskServiceTest {
         TaskService service = service();
         service.assignTask(new DailyTask("T-1", "Run", "d", 10), user.getId());
         service.assignTask(new DailyTask("T-2", "Read", "d", 20), user.getId());
-        service.completeTask("T-1", user);
+        service.completeTask("T-1", user, 50);
 
         assertThat(service.getCompletedTasks(user.getId()).size()).isEqualTo(1);
         assertThat(service.getCompletedTasks(user.getId()).get(0).getId()).isEqualTo("T-1");
@@ -234,5 +253,88 @@ class TaskServiceTest {
 
         assertThatThrownBy(() -> service.deleteTask("intruder", "T-1")).isInstanceOf(IllegalArgumentException.class);
         assertThat(tasks.data.containsKey("T-1")).isTrue();
+    }
+
+    @Test
+    void dailyQuestRequiresScore() {
+        User user = newUser();
+        TaskService service = service();
+        service.assignTask(new DailyTask("T-1", "Run", "d", 100), user.getId());
+
+        assertThatThrownBy(() -> service.completeTask("T-1", user)).isInstanceOf(IllegalArgumentException.class);
+        assertThat(user.getCurrentXp()).isZero();
+    }
+
+    @Test
+    void dailyQuestIsGradedAndGradeIsPersisted() {
+        User user = newUser();
+        TaskService service = service();
+        service.assignTask(new DailyTask("T-1", "Run", "d", 100), user.getId());
+
+        CompletionResult result = service.complete("T-1", user, 95);
+
+        assertThat(result.grade()).isEqualTo(PerformanceGrade.S);
+        assertThat(result.xp()).isEqualTo(200);
+        assertThat(user.getCurrentXp()).isEqualTo(200);
+        assertThat(tasks.data.get("T-1").getGrade()).isEqualTo(PerformanceGrade.S);
+    }
+
+    @Test
+    void weeklyQuestBonusDependsOnGrade() {
+        User user = newUser();
+        TaskService service = service();
+        service.assignTask(new WeeklyTask("W-1", "Read", "d", 150), user.getId());
+
+        CompletionResult result = service.complete("W-1", user, 80);
+
+        assertThat(result.grade()).isEqualTo(PerformanceGrade.B);
+        assertThat(result.xp()).isEqualTo(210);
+    }
+
+    @Test
+    void activeTasksAreSortedByDeadlineWithUndatedLast() {
+        User user = newUser();
+        TaskService service = service();
+        LocalDate today = LocalDate.now();
+        DailyTask later = new DailyTask("T-late", "Later", "d", 10);
+        later.setDeadline(today.plusDays(5));
+        DailyTask soon = new DailyTask("T-soon", "Soon", "d", 10);
+        soon.setDeadline(today.plusDays(1));
+        DailyTask none = new DailyTask("T-none", "None", "d", 500);
+        service.assignTask(later, user.getId());
+        service.assignTask(none, user.getId());
+        service.assignTask(soon, user.getId());
+
+        List<String> order = service.getActiveTasks(user.getId()).stream().map(Task::getId).toList();
+
+        assertThat(order).isEqualTo(List.of("T-soon", "T-late", "T-none"));
+    }
+
+    @Test
+    void deadlineSurvivesRoundTrip() {
+        User user = newUser();
+        TaskService service = service();
+        DailyTask task = new DailyTask("T-1", "Run", "d", 10);
+        task.setDeadline(LocalDate.of(2030, 1, 15));
+        service.assignTask(task, user.getId());
+
+        assertThat(service.getTasks(user.getId()).get(0).getDeadline()).isEqualTo(LocalDate.of(2030, 1, 15));
+    }
+
+    @Test
+    void overdueIsDetectedOnlyForActiveTasksWithPastDeadline() {
+        LocalDate today = LocalDate.of(2026, 11, 3);
+        DailyTask overdue = new DailyTask("a", "a", "d", 10);
+        overdue.setDeadline(today.minusDays(1));
+        DailyTask dueToday = new DailyTask("b", "b", "d", 10);
+        dueToday.setDeadline(today);
+        DailyTask done = new DailyTask("c", "c", "d", 10);
+        done.setDeadline(today.minusDays(3));
+        done.setCompleted(true);
+
+        assertThat(overdue.isOverdue(today)).isTrue();
+        assertThat(dueToday.isOverdue(today)).isFalse();
+        assertThat(done.isOverdue(today)).isFalse();
+        assertThat(new DailyTask("d", "d", "d", 10).isOverdue(today)).isFalse();
     }
 }

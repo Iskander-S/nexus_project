@@ -6,6 +6,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Tooltip;
@@ -15,8 +16,10 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import model.GlobalQuest;
 import model.Task;
+
 import java.util.EnumMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public final class QuestsView extends ScrollPane {
@@ -25,9 +28,10 @@ public final class QuestsView extends ScrollPane {
     private final ToggleButton allFilter = filterButton("All", null);
     private final Map<QuestKind, ToggleButton> kindFilters = new EnumMap<>(QuestKind.class);
     private final Label subtitle = Ui.label("", "page-subtitle");
+    private final TextField search = new TextField();
 
     private List<Task> active = List.of();
-    private QuestKind selected;   // null = показывать все
+    private QuestKind selected;
 
     public QuestsView(QuestActions actions) {
         this.actions = actions;
@@ -62,7 +66,16 @@ public final class QuestsView extends ScrollPane {
         HBox header = new HBox(new VBox(2, Ui.label("Quests", "page-title"), subtitle), spacer, newQuest);
         header.setAlignment(Pos.CENTER_LEFT);
 
-        VBox page = new VBox(18, header, filters, list);
+        search.setPromptText("Search quests…");
+        search.getStyleClass().add("search-field");
+        search.textProperty().addListener((obs, oldText, newText) -> rebuild());
+
+        Region filterSpacer = new Region();
+        HBox.setHgrow(filterSpacer, Priority.ALWAYS);
+        HBox filterRow = new HBox(12, filters, filterSpacer, search);
+        filterRow.setAlignment(Pos.CENTER_LEFT);
+
+        VBox page = new VBox(18, header, filterRow, list);
         page.setPadding(new Insets(32));
         page.getStyleClass().add("page");
 
@@ -84,12 +97,11 @@ public final class QuestsView extends ScrollPane {
     }
 
     private void rebuild() {
+        String query = search.getText() == null ? "" : search.getText().trim().toLowerCase(Locale.ROOT);
         List<Task> visible = active.stream()
                 .filter(t -> selected == null || QuestKind.of(t) == selected)
-                .sorted((a, b) -> {
-                    int byKind = Integer.compare(QuestKind.of(b).ordinal(), QuestKind.of(a).ordinal());
-                    return byKind != 0 ? byKind : Integer.compare(b.getBaseXp(), a.getBaseXp());
-                })
+                .filter(t -> query.isEmpty() || t.getTitle().toLowerCase(Locale.ROOT).contains(query))
+                .sorted(Task.DEADLINE_ORDER)
                 .toList();
 
         list.getChildren().clear();
@@ -123,6 +135,10 @@ public final class QuestsView extends ScrollPane {
         if (task instanceof GlobalQuest quest) {
             chips.getChildren().add(Ui.chip("Target " + quest.getTargetScore(), "target"));
         }
+        Label deadline = Ui.deadlineChip(task);
+        if (deadline != null) {
+            chips.getChildren().add(deadline);
+        }
         text.getChildren().add(chips);
         HBox.setHgrow(text, Priority.ALWAYS);
 
@@ -146,14 +162,23 @@ public final class QuestsView extends ScrollPane {
 
         HBox card = new HBox(stripe, body);
         card.getStyleClass().add("quest-card");
+        if (Ui.isOverdue(task)) {
+            card.getStyleClass().add("quest-card-overdue");
+        }
         return card;
     }
 
     private Node emptyState() {
+        String query = search.getText() == null ? "" : search.getText().trim();
+        boolean searching = !query.isEmpty() && !active.isEmpty();
         boolean filtered = selected != null && !active.isEmpty();
-        Label title = Ui.label(filtered ? "No " + selected.label().toLowerCase() + " quests" : "No active quests", "empty-title");
-        Label hint = Ui.label(filtered ? "Try another filter, or add a new quest of this type."
-                : "Create your first quest and start earning XP.", "empty-hint");
+        String titleText = searching ? "No quests match “" + query + "”"
+                : filtered ? "No " + selected.label().toLowerCase() + " quests" : "No active quests";
+        String hintText = searching ? "Check the spelling or clear the search field."
+                : filtered ? "Try another filter, or add a new quest of this type."
+                : "Create your first quest and start earning XP.";
+        Label title = Ui.label(titleText, "empty-title");
+        Label hint = Ui.label(hintText, "empty-hint");
         Button add = new Button("New quest", Ui.icon(Ui.ICON_ADD, 13, 13));
         add.getStyleClass().add("primary");
         add.setOnAction(e -> actions.addQuest());

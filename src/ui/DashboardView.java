@@ -5,15 +5,20 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Tooltip;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import model.Achievement;
 import model.GlobalQuest;
 import model.Rank;
 import model.Task;
 import model.User;
+import service.UserService;
+
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -40,8 +45,10 @@ public final class DashboardView extends ScrollPane {
     private final Label availableValue = Ui.label("0", "stat-value");
 
     private final VBox topQuests = new VBox(10);
+    private final VBox leaderboardRows = new VBox(8);
+    private final FlowPane achievementTiles = new FlowPane(10, 10);
 
-    public DashboardView(QuestActions actions) {
+    public DashboardView(QuestActions actions, Runnable onEditProfile) {
         this.actions = actions;
 
         Label subtitle = Ui.label(LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, d MMMM")), "page-subtitle");
@@ -50,12 +57,16 @@ public final class DashboardView extends ScrollPane {
         identity.setAlignment(Pos.CENTER_LEFT);
         avatarSlot.setMinSize(84, 84);
 
+        Button editProfile = new Button("Edit profile", Ui.icon(Ui.ICON_EDIT, 13, 13));
+        editProfile.getStyleClass().add("ghost");
+        editProfile.setOnAction(e -> onEditProfile.run());
+
         HBox levelHeader = new HBox(Ui.label("Level progress", "bar-caption"), spacer(), levelValue);
         HBox rankHeader = new HBox(rankCaption, spacer(), rankValue);
         VBox.setMargin(rankHeader, new Insets(10, 0, 0, 0));
         VBox bars = new VBox(8, levelHeader, levelBar, rankHeader, rankBar);
 
-        HBox heroTop = new HBox(20, avatarSlot, identity);
+        HBox heroTop = new HBox(20, avatarSlot, identity, spacer(), editProfile);
         heroTop.setAlignment(Pos.CENTER_LEFT);
         VBox hero = new VBox(22, heroTop, bars);
         hero.getStyleClass().addAll("card", "hero-card");
@@ -74,7 +85,17 @@ public final class DashboardView extends ScrollPane {
         VBox topCard = new VBox(14, topHeader, topQuests);
         topCard.getStyleClass().add("card");
 
-        VBox page = new VBox(22, new VBox(2, greeting, subtitle), hero, stats, topCard);
+        VBox leaderboardCard = new VBox(14,
+                new HBox(Ui.label("Leaderboard", "section-title"), spacer(),
+                        Ui.label("Top " + UserService.LEADERBOARD_SIZE + " by XP", "page-subtitle")),
+                leaderboardRows);
+        leaderboardCard.getStyleClass().add("card");
+
+        achievementTiles.setPrefWrapLength(600);
+        VBox achievementsCard = new VBox(14, Ui.label("Achievements", "section-title"), achievementTiles);
+        achievementsCard.getStyleClass().add("card");
+
+        VBox page = new VBox(22, new VBox(2, greeting, subtitle), hero, stats, topCard, leaderboardCard, achievementsCard);
         page.setPadding(new Insets(32));
         page.getStyleClass().add("page");
 
@@ -88,7 +109,7 @@ public final class DashboardView extends ScrollPane {
         List<Task> active = snapshot.active();
 
         greeting.setText(greetingFor(LocalTime.now().getHour()) + ", " + user.getName());
-        avatarSlot.getChildren().setAll(Ui.avatar(user.getName(), 84, user.getRank()));
+        avatarSlot.getChildren().setAll(Ui.avatar(user, 84));
         nameLabel.setText(user.getName());
         badges.getChildren().setAll(Ui.rankBadge(user.getRank()), Ui.chip("Level " + user.getLevel(), "level"));
 
@@ -114,6 +135,12 @@ public final class DashboardView extends ScrollPane {
         totalXpValue.setText(String.valueOf(user.getCurrentXp()));
         availableValue.setText(String.valueOf(active.stream().mapToInt(Task::getBaseXp).sum()));
 
+        renderTopQuests(active);
+        renderLeaderboard(snapshot.leaderboard(), user);
+        renderAchievements(snapshot.achievements());
+    }
+
+    private void renderTopQuests(List<Task> active) {
         topQuests.getChildren().clear();
         List<Task> top = active.stream()
                 .sorted(Comparator.comparingInt((Task t) -> t.getBaseXp()).reversed())
@@ -127,6 +154,61 @@ public final class DashboardView extends ScrollPane {
         }
     }
 
+    private void renderLeaderboard(List<User> leaders, User current) {
+        leaderboardRows.getChildren().clear();
+        if (leaders.isEmpty()) {
+            leaderboardRows.getChildren().add(Ui.label("No players yet.", "empty-hint"));
+            return;
+        }
+        int position = 1;
+        for (User leader : leaders) {
+            leaderboardRows.getChildren().add(leaderboardRow(position++, leader, leader.getId().equals(current.getId())));
+        }
+    }
+
+    private Region leaderboardRow(int position, User leader, boolean isCurrent) {
+        Label place = Ui.label(String.valueOf(position), "lb-pos");
+        if (position <= 3) {
+            place.getStyleClass().add("lb-pos-" + position);
+        }
+
+        Label name = Ui.label(leader.getName() + (isCurrent ? "  (you)" : ""), "lb-name");
+        name.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(name, Priority.ALWAYS);
+
+        HBox row = new HBox(12, place, Ui.avatar(leader, 32), name,
+                Ui.rankBadge(leader.getRank()),
+                Ui.chip("Level " + leader.getLevel(), "level"),
+                Ui.label(leader.getCurrentXp() + " XP", "lb-xp"));
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.getStyleClass().add("lb-row");
+        if (isCurrent) {
+            row.getStyleClass().add("lb-row-me");
+        }
+        return row;
+    }
+
+    private void renderAchievements(List<Achievement> unlocked) {
+        achievementTiles.getChildren().clear();
+        if (unlocked.isEmpty()) {
+            achievementTiles.getChildren().add(Ui.label("Complete quests to unlock achievements.", "empty-hint"));
+            return;
+        }
+        for (Achievement achievement : unlocked) {
+            Label icon = Ui.label(achievement.icon() == null ? "" : achievement.icon(), "achievement-icon");
+            Label title = Ui.label(achievement.title(), "achievement-title");
+            Label description = Ui.label(achievement.description() == null ? "" : achievement.description(), "achievement-desc");
+            description.setWrapText(true);
+            description.setMaxWidth(220);
+
+            HBox tile = new HBox(12, icon, new VBox(2, title, description));
+            tile.setAlignment(Pos.CENTER_LEFT);
+            tile.getStyleClass().add("achievement-tile");
+            Tooltip.install(tile, new Tooltip(achievement.description()));
+            achievementTiles.getChildren().add(tile);
+        }
+    }
+
     private Region row(Task task) {
         QuestKind kind = QuestKind.of(task);
         Label title = Ui.label(task.getTitle(), "row-title");
@@ -137,9 +219,16 @@ public final class DashboardView extends ScrollPane {
         if (task instanceof GlobalQuest quest) {
             row.getChildren().add(Ui.chip("Target " + quest.getTargetScore(), "target"));
         }
+        Label deadline = Ui.deadlineChip(task);
+        if (deadline != null) {
+            row.getChildren().add(deadline);
+        }
         row.getChildren().add(Ui.chip("+" + task.getBaseXp() + " XP", "xp"));
         row.setAlignment(Pos.CENTER_LEFT);
         row.getStyleClass().add("row");
+        if (Ui.isOverdue(task)) {
+            row.getStyleClass().add("row-overdue");
+        }
         return row;
     }
 

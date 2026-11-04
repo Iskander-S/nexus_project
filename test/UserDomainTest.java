@@ -11,7 +11,7 @@ class UserDomainTest {
     void shouldNotLevelUpBelowThreshold() {
         User user = new User("test_id", "Tester");
 
-        user.addXp(150); // порог уровня — 200 XP
+        user.addXp(150);
 
         assertThat(user.getCurrentXp()).isEqualTo(150);
         assertThat(user.getLevel()).isEqualTo(1);
@@ -27,7 +27,7 @@ class UserDomainTest {
 
         assertThat(user.getCurrentXp()).isEqualTo(250);
         assertThat(user.getLevel()).isGreaterThan(initialLevel);
-        assertThat(user.getRank()).isEqualTo(Rank.E_RANK); // до D-Rank нужно 400 XP
+        assertThat(user.getRank()).isEqualTo(Rank.E_RANK);
     }
 
     @Test

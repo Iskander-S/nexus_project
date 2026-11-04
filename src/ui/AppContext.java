@@ -1,11 +1,16 @@
 package ui;
 
+import config.AppServices;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.concurrent.Task;
 import javafx.stage.Window;
 import model.User;
+import service.AchievementService;
+import service.AvatarService;
+import service.QuestCompletionService;
 import service.TaskService;
+import service.UserService;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -14,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public final class AppContext {
-    private final TaskService taskService;
+    private final AppServices services;
     private final User user;
     private final Window window;
     private final ToastHost toasts = new ToastHost();
@@ -28,16 +33,21 @@ public final class AppContext {
     private int pending;
     private Runnable reloadAction = () -> { };
 
-    public AppContext(TaskService taskService, User user, Window window) {
-        this.taskService = taskService;
+    public AppContext(AppServices services, User user, Window window) {
+        this.services = services;
         this.user = user;
         this.window = window;
     }
 
-    public TaskService tasks() { return taskService; }
+    public TaskService tasks() { return services.taskService(); }
+    public UserService users() { return services.userService(); }
+    public AvatarService avatars() { return services.avatarService(); }
+    public AchievementService achievements() { return services.achievementService(); }
+    public QuestCompletionService quests() { return services.questCompletionService(); }
     public User user() { return user; }
     public Window window() { return window; }
     public ToastHost toasts() { return toasts; }
+    public NotificationService notifications() { return toasts; }
     public BooleanProperty busyProperty() { return busy; }
 
     public void setReloadAction(Runnable reloadAction) {
@@ -48,7 +58,7 @@ public final class AppContext {
         reloadAction.run();
     }
 
-    public void toast(String message, ToastHost.Kind kind) {
+    public void toast(String message, NotificationService.Kind kind) {
         toasts.show(message, kind);
     }
 
@@ -71,7 +81,7 @@ public final class AppContext {
             Throwable error = task.getException();
             String message = error == null || error.getMessage() == null
                     ? "Something went wrong." : error.getMessage();
-            toast(message, ToastHost.Kind.ERROR);
+            toast(message, NotificationService.Kind.ERROR);
         });
         executor.execute(task);
     }

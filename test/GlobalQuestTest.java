@@ -44,7 +44,6 @@ class GlobalQuestTest {
     void bonusXpIsAddedToBase() {
         GlobalQuest quest = new GlobalQuest("g", "t", "d", 300, 90);
 
-        // S: бонус 100% от 300 -> всего 600
         assertThat(new EvaluationService().processTaskEvaluation(quest, 95)).isEqualTo(600);
     }
 
@@ -64,5 +63,33 @@ class GlobalQuestTest {
         service.processTaskEvaluation(quest, 50);
 
         assertThatThrownBy(() -> service.processTaskEvaluation(quest, 50)).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void evaluationStoresGradeOnTask() {
+        GlobalQuest quest = new GlobalQuest("g", "t", "d", 300, 90);
+
+        new EvaluationService().processTaskEvaluation(quest, 95);
+
+        assertThat(quest.getGrade()).isEqualTo(PerformanceGrade.S);
+    }
+
+    @Test
+    void dailyAndWeeklyQuestsUseTheSameGradeScale() {
+        model.DailyTask daily = new model.DailyTask("d", "t", "d", 100);
+        model.WeeklyTask weekly = new model.WeeklyTask("w", "t", "d", 100);
+
+        assertThat(daily.evaluatePerformance(90)).isEqualTo(PerformanceGrade.S);
+        assertThat(daily.evaluatePerformance(86)).isEqualTo(PerformanceGrade.A);
+        assertThat(weekly.evaluatePerformance(80)).isEqualTo(PerformanceGrade.B);
+        assertThat(weekly.evaluatePerformance(10)).isEqualTo(PerformanceGrade.E);
+    }
+
+    @Test
+    void evaluationServiceAwardsBonusForDailyQuest() {
+        model.DailyTask daily = new model.DailyTask("d", "t", "d", 100);
+
+        assertThat(new EvaluationService().processTaskEvaluation(daily, 100)).isEqualTo(200);
+        assertThat(daily.isCompleted()).isTrue();
     }
 }

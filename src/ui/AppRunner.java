@@ -99,7 +99,6 @@ public class AppRunner {
             throw new IllegalArgumentException("Base XP must be positive.");
         }
 
-        // 5 hex-символов давали реальные коллизии; теперь 8, а БД при дубликате вернёт ошибку, а не перезапишет задачу
         String id = "T-" + UUID.randomUUID().toString().substring(0, 8);
         Task task = switch (type) {
             case "1" -> new DailyTask(id, title, "Generated task", xp);
